@@ -1,0 +1,21 @@
+{
+    "settings": "Настройки",
+    "themes": "Темы",
+    "about": "О программе",
+    "about_the_core": "О ядре",
+    "language": "Язык",
+    "dark_mode": "Тёмный режим",
+    "theme_description": "Чистый чёрно-белый дизайн.\nПереключение между тёмной и светлой темой.",
+    "application": "Приложение",
+    "version": "Версия",
+    "author": "Автор",
+    "framework": "Фреймворк",
+    "description": "Описание",
+    "no_app_loaded": "Приложение не загружено",
+    "no_apps_found": "приложения не найдены",
+    "create_app_hint": "создайте App/<имя>/manifest.json + main.py",
+    "select_app": "выберите приложение для запуска",
+    "apps_found": "приложение(й) найдено",
+    "only_in_app": "(только в приложении)",
+    "only_in_core": "(только в ядре)"
+}

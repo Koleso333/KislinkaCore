@@ -1,0 +1,21 @@
+{
+    "settings": "Settings",
+    "themes": "Themes",
+    "about": "About",
+    "about_the_core": "About the Core",
+    "language": "Language",
+    "dark_mode": "Dark Mode",
+    "theme_description": "Pure black & white design.\nSwitch between dark and light mode.",
+    "application": "Application",
+    "version": "Version",
+    "author": "Author",
+    "framework": "Framework",
+    "description": "Description",
+    "no_app_loaded": "No app loaded",
+    "no_apps_found": "no applications found",
+    "create_app_hint": "create App/<name>/manifest.json + main.py",
+    "select_app": "select an application to launch",
+    "apps_found": "app(s) found",
+    "only_in_app": "(only in app)",
+    "only_in_core": "(only in core)"
+}
