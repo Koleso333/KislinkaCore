@@ -63,6 +63,7 @@ class TitleBar(QWidget):
         self._dragging = False
         self._drag_pos = QPoint()
         self._custom_buttons: list[QPushButton] = []
+        self._custom_click_guard = None
         self.setFixedHeight(self.HEIGHT)
 
         layout = QHBoxLayout(self)
@@ -100,19 +101,38 @@ class TitleBar(QWidget):
         self._apply_theme()
         self._tm.changed.connect(self._apply_theme)
 
+    def set_custom_click_guard(self, guard):
+        self._custom_click_guard = guard
+
     def set_title(self, text: str):
         self._title.setText(text)
 
     def add_custom_button(self, icon_name_or_path: str, callback, icon_size: int = 16) -> QPushButton:
         """Add a custom button to the titlebar (right of settings icon)."""
         btn = _TitleBarButton(icon_name_or_path, icon_size)
-        btn.clicked.connect(callback)
+
+        def _on_click():
+            try:
+                if self._custom_click_guard and not self._custom_click_guard():
+                    return
+            except Exception:
+                return
+            callback()
+
+        btn.clicked.connect(_on_click)
         self._custom_left_layout.addWidget(btn)
         self._custom_buttons.append(btn)
         return btn
 
+    def set_custom_buttons_enabled(self, enabled: bool):
+        for btn in self._custom_buttons:
+            btn.setEnabled(enabled)
+
     def reconnect_theme(self):
         """Reconnect all theme signals after disconnect_all."""
+        # remember custom buttons visibility state
+        custom_visible = all(btn.isVisible() for btn in self._custom_buttons) if self._custom_buttons else True
+
         # reconnect own theme
         try:
             self._tm.changed.disconnect(self._apply_theme)
@@ -131,6 +151,10 @@ class TitleBar(QWidget):
             if hasattr(btn, 'reconnect_theme'):
                 btn.reconnect_theme()
 
+        # restore custom buttons visibility state
+        if not custom_visible:
+            self.hide_custom_buttons()
+
     def clear_custom_buttons(self):
         """Remove all custom app buttons."""
         self._custom_buttons.clear()
@@ -144,11 +168,13 @@ class TitleBar(QWidget):
         """Hide all custom buttons (when settings open)."""
         for btn in self._custom_buttons:
             btn.setVisible(False)
+            btn.setEnabled(False)
 
     def show_custom_buttons(self):
         """Show all custom buttons (when settings close)."""
         for btn in self._custom_buttons:
             btn.setVisible(True)
+            btn.setEnabled(True)
 
     def _apply_theme(self):
         self._title.setStyleSheet(f"color: {self._tm.fg}; background: transparent;")

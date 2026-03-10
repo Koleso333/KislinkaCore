@@ -1,5 +1,4 @@
 .venv/
-App/
 __pycache__/
 *.pyc
 .idea/

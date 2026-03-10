@@ -1,0 +1,16 @@
+{
+    "name": "DemoApp",
+    "display_name": "Demo App",
+    "version": "1.0.0",
+    "author": "Kislinka",
+    "main_class": "DemoApp",
+    "entry_point": "main.py",
+    "window": {
+        "width": 900,
+        "height": 600
+    },
+    "permissions": {
+        "audio": false,
+        "graphics": false
+    }
+}

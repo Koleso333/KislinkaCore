@@ -64,6 +64,59 @@ class SettingsPanel:
     def is_open(self) -> bool:
         return self._is_open
 
+    def snapshot(self) -> dict:
+        """Capture current settings navigation state to restore after visual reload."""
+        if not self._is_open:
+            return {"is_open": False}
+
+        current_name = "settings_menu"
+        try:
+            cur = getattr(self._sm, "current", None)
+            if cur is not None:
+                current_name = getattr(cur, "name", "settings_menu") or "settings_menu"
+        except Exception:
+            pass
+
+        return {
+            "is_open": True,
+            "current": current_name,
+        }
+
+    def restore(self, snap: dict | None):
+        """Restore settings navigation state captured by snapshot()."""
+        if not snap or not isinstance(snap, dict):
+            return
+        if not snap.get("is_open"):
+            return
+
+        if not self._is_open:
+            self.open()
+
+        target = snap.get("current", "settings_menu")
+        try:
+            if getattr(self._sm, "current", None) is not None and self._sm.current.name == target:
+                return
+        except Exception:
+            pass
+        builder = self._builder_for_scene(target)
+        if builder and not self._sm.is_animating:
+            # menu is already on stack after open(); push target page if needed
+            if target != "settings_menu":
+                self._sm.push(builder(), AnimationType.NONE)
+
+    def _builder_for_scene(self, scene_name: str):
+        if scene_name == "settings_menu":
+            return self._build_menu
+        if scene_name == "settings_themes":
+            return self._build_themes_page
+        if scene_name == "settings_language":
+            return self._build_language_page
+        if scene_name == "settings_about":
+            return self._build_about_page
+        if scene_name == "settings_core_about":
+            return self._build_core_about_page
+        return None
+
     def set_app_manifest(self, manifest):
         self._app_manifest = manifest
 
@@ -190,9 +243,21 @@ class SettingsPanel:
         rl.addWidget(toggle)
 
         def sync():
-            toggle._checked = self._tm.is_dark
-            toggle._knob_x = toggle._knob_on_x() if toggle._checked else toggle._knob_off_x()
-            toggle.update()
+            if sip_deleted(toggle):
+                try:
+                    self._tm.changed.disconnect(sync)
+                except Exception:
+                    pass
+                return
+            try:
+                toggle._checked = self._tm.is_dark
+                toggle._knob_x = toggle._knob_on_x() if toggle._checked else toggle._knob_off_x()
+                toggle.update()
+            except RuntimeError:
+                try:
+                    self._tm.changed.disconnect(sync)
+                except Exception:
+                    pass
 
         self._tm.changed.connect(sync)
         cl.addWidget(row)

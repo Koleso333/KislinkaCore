@@ -21,7 +21,7 @@ class LauncherWindow(QWidget):
         self._dragging = False
         self._drag_pos = None
 
-        self.setWindowTitle("KislinkaCore Launcher")
+        self.setWindowTitle("Kislinka Core")
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window
         )
@@ -46,7 +46,7 @@ class LauncherWindow(QWidget):
         inner_lay.setContentsMargins(30, 30, 30, 30)
         inner_lay.setSpacing(16)
 
-        title = QLabel("KislinkaCore")
+        title = QLabel("Kislinka Launcher")
         title.setFont(QFont("Mitr", 32))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet(f"color: {fg}; background: transparent; border: none;")

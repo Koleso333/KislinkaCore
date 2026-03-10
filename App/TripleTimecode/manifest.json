@@ -1,0 +1,15 @@
+{
+    "name": "TripleTimecode",
+    "display_name": "TripleTimecode",
+    "version": "1.0.0",
+    "author": "Koleso",
+    "main_class": "TripleTimecode",
+    "entry_point": "main.py",
+    "window": {
+        "width": 1100,
+        "height": 700
+    },
+    "permissions": {
+        "audio": true
+    }
+}

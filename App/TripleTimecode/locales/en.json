@@ -1,0 +1,15 @@
+{
+    "load_music": "Load Music",
+    "no_track": "No track loaded",
+    "play": "Play",
+    "pause": "Pause",
+    "stop": "Stop",
+    "stamp": "Stamp Timecode (W)",
+    "edit_mode": "Edit Mode",
+    "sync_mode": "Sync Mode",
+    "lyrics_placeholder": "Paste or type lyrics here...",
+    "no_lyrics": "No lyrics to preview",
+    "undo_stamp": "Undo Last Stamp",
+    "clear_timecodes": "Clear All Timecodes",
+    "export": "Copy to Clipboard"
+}
