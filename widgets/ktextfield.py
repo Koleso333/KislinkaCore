@@ -225,3 +225,48 @@ class KTextField(QWidget):
 
     def set_read_only(self, readonly: bool):
         self._inner.setReadOnly(readonly)
+    def set_placeholder(self, text: str):
+        """Change placeholder text at runtime."""
+        self._inner.setPlaceholderText(text)
+
+    @property
+    def inner(self):
+        """Access underlying QLineEdit (single) or QTextEdit (multi)."""
+        return self._inner
+
+    # ── cursor control (multiline only) ─────────────
+
+    def cursor_position(self) -> int:
+        """Get cursor position. Single: char index. Multi: block position."""
+        if self._multiline:
+            return self._inner.textCursor().position()
+        return self._inner.cursorPosition()
+
+    def set_cursor_line(self, line: int):
+        """Move cursor to the start of given line (multiline only)."""
+        if not self._multiline:
+            return
+        from PyQt6.QtGui import QTextCursor
+        cursor = self._inner.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.Start)
+        for _ in range(line):
+            cursor.movePosition(QTextCursor.MoveOperation.Down)
+        self._inner.setTextCursor(cursor)
+        self._inner.ensureCursorVisible()
+
+    def ensure_cursor_visible(self):
+        """Scroll to make cursor visible (multiline only)."""
+        if self._multiline:
+            self._inner.ensureCursorVisible()
+
+    def line_count(self) -> int:
+        """Number of lines in text."""
+        return self.text.count("\n") + 1 if self.text else 0
+
+    def lines(self) -> list[str]:
+        """Get text split into lines."""
+        return self.text.split("\n")
+
+    def set_lines(self, lines: list[str]):
+        """Set text from list of lines."""
+        self.text = "\n".join(lines)

@@ -6,7 +6,7 @@
 Application framework built on Python + PyQt6.
 
 KislinkaCore is a runtime engine for desktop applications. You write the logic — the core handles the window, theming, navigation, audio, graphics, localization, and data storage.
-Documentation is created for version 0.1.0
+Documentation is created for version 0.1.1b1
 ---
 
 ## Table of Contents
@@ -26,6 +26,11 @@ Documentation is created for version 0.1.0
     - [KButton](#kbutton)
     - [KTextField](#ktextfield)
     - [KToggle](#ktoggle)
+    - [KSlider](#kslider)
+    - [KPanel](#kpanel)
+    - [KDivider](#kdivider)
+    - [KScrollArea](#kscrollarea)
+    - [KRow / KColumn / KGrid](#krow--kcolumn--kgrid)
   - [Theme](#theme)
   - [Audio](#audio)
   - [Metadata](#metadata)
@@ -166,6 +171,11 @@ KislinkaCore/
 │   ├── klabel.py              # Label with auto font
 │   ├── ktextfield.py          # Text input (single/multi line)
 │   ├── ktoggle.py             # iOS-style toggle switch
+│   ├── kslider.py             # Animated horizontal slider
+│   ├── kgrid.py               # KRow, KColumn, KGrid layout containers
+│   ├── kpanel.py              # Themed container panel
+│   ├── kdivider.py            # Themed separator line
+│   ├── kscrollarea.py         # Themed scroll area
 │   ├── kicon.py               # SVG icon loader
 │   └── ksettingsitem.py       # Settings list item
 │
@@ -502,6 +512,109 @@ Design:
 - iOS-style switch
 - Animated knob slide (150ms)
 - White track when on, gray when off (dark theme)
+
+#### KSlider
+
+```python
+from widgets.kslider import KSlider
+
+# Basic
+slider = KSlider(min_val=0, max_val=100, value=50)
+slider.value_changed.connect(lambda v: print(v))
+
+# Stepped
+slider = KSlider(min_val=0, max_val=10, value=5, step=1)
+
+# Read / write
+val = slider.value
+slider.value = 75
+```
+
+Design:
+- Horizontal track with animated round knob
+- Knob slides with 120ms ease-out animation
+- Mouse wheel support (step or 1% increments)
+- Theme-aware colors
+
+#### KPanel
+
+```python
+from widgets.kpanel import KPanel
+
+# Default background
+panel = KPanel()
+
+# Elevated surface
+panel = KPanel("alt")
+
+# Sidebar with border
+sidebar = KPanel("alt", fixed_width=320, border=True, radius=8)
+
+# Horizontal toolbar
+toolbar = KPanel("alt", direction="horizontal", spacing=8, margins=(16, 0, 16, 0))
+
+# Fluent API
+panel = KPanel("alt", spacing=12, margins=(20, 16, 20, 16))
+panel.add(label).add_spacing(8).add(button).add_stretch()
+```
+
+| Variant | Background |
+|---|---|
+| `"default"` | `theme.bg` |
+| `"alt"` | `theme.bg_alt` |
+| `"custom"` | `custom_bg` color |
+
+#### KDivider
+
+```python
+from widgets.kdivider import KDivider
+
+# Horizontal line (default)
+div = KDivider()
+
+# Vertical separator
+div = KDivider(direction="vertical")
+
+# Custom thickness / color
+div = KDivider(thickness=2, color_key="fg_dim")
+```
+
+#### KScrollArea
+
+```python
+from widgets.kscrollarea import KScrollArea
+
+scroll = KScrollArea()
+scroll.set_content(my_widget)
+```
+
+Auto-themed background, horizontal scroll off by default.
+
+#### KRow / KColumn / KGrid
+
+```python
+from widgets.kgrid import KRow, KColumn, KGrid
+
+# Horizontal row
+row = KRow(spacing=12)
+row.add(btn_a).add(btn_b).add_stretch()
+
+# Vertical column
+col = KColumn(spacing=8, margins=(20, 10, 20, 10))
+col.add(title, stretch=0).add(editor, stretch=1).add_stretch()
+
+# Auto-placement grid
+grid = KGrid(columns=3, spacing=12, equal_columns=True)
+for w in widgets:
+    grid.add(w)
+
+# Manual grid placement
+grid = KGrid(columns=4)
+grid.place(header, row=0, col=0, colspan=4)
+grid.place(sidebar, row=1, col=0, rowspan=2)
+```
+
+All containers use transparent background and fluent `.add()` chaining.
 
 ---
 
