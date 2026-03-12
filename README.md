@@ -6,7 +6,7 @@
 Application framework built on Python + PyQt6.
 
 KislinkaCore is a runtime engine for desktop applications. You write the logic — the core handles the window, theming, navigation, audio, graphics, localization, and data storage.
-Documentation is created for version 0.1.1b1
+Documentation is created for version 0.1.1b1 (and commits)
 ---
 
 ## Table of Contents
