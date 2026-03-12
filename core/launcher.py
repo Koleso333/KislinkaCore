@@ -6,6 +6,8 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QApplicat
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
+from core.hooks import HookManager
+
 
 class LauncherWindow(QWidget):
     """Standalone launcher window."""
@@ -16,7 +18,9 @@ class LauncherWindow(QWidget):
     def __init__(self, manifests: list):
         super().__init__()
 
-        self._manifests = manifests
+        # filter: components can modify/reorder/hide app manifests
+        hooks = HookManager.instance()
+        self._manifests = hooks.filter("app_manifests", manifests)
         self._selected = False
         self._dragging = False
         self._drag_pos = None
@@ -60,7 +64,7 @@ class LauncherWindow(QWidget):
 
         inner_lay.addSpacing(10)
 
-        for m in manifests:
+        for m in self._manifests:
             btn = QPushButton(f"{m.display_name}  v{m.version}")
             btn.setFixedHeight(48)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -91,7 +95,7 @@ class LauncherWindow(QWidget):
 
         inner_lay.addStretch()
 
-        footer = QLabel(f"{len(manifests)} application(s) found")
+        footer = QLabel(f"{len(self._manifests)} application(s) found")
         footer.setFont(QFont("Roboto", 10, QFont.Weight.Bold))
         footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
         footer.setStyleSheet(f"color: {fg_dim}; background: transparent; border: none;")

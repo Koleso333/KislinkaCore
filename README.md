@@ -43,6 +43,10 @@ Documentation is created for version 0.1.1b1
   - [Storage](#storage)
   - [Localization](#localization)
   - [Permissions](#permissions)
+  - [Components](#components)
+    - [Creating a Component](#creating-a-component)
+    - [Hooks](#hooks)
+    - [Accessing Components from Apps](#accessing-components-from-apps)
   - [Titlebar](#titlebar)
   - [Settings Tabs](#settings-tabs)
   - [Fonts](#fonts)
@@ -158,6 +162,9 @@ KislinkaCore/
 │   ├── loader.py              # App scanner + loader
 │   ├── storage.py             # Persistent data (JSON in AppData)
 │   ├── locale.py              # Localization (independent core/app)
+│   ├── hooks.py               # Hook system for components
+│   ├── component.py           # Base component class
+│   ├── component_manager.py   # Component scanner + loader
 │   ├── error_handler.py       # Global error catcher + error window
 │   ├── launcher.py            # Multi-app launcher window
 │   ├── splash.py              # Splash overlay animation
@@ -165,6 +172,11 @@ KislinkaCore/
 │   └── locales/
 │       ├── en.json            # English strings
 │       └── ru.json            # Russian strings
+│
+├── components/                # Core components (plugins)
+│   └── MyComponent/
+│       ├── manifest.json
+│       └── component.py
 │
 ├── widgets/                   # UI components
 │   ├── kbutton.py             # Button with scale animation
@@ -231,13 +243,14 @@ KislinkaCore/
 **Flow:**
 
 1. `main.py` creates `KislinkaApp`
-2. Core scans `App/` for applications
-3. If 1 app → launches directly with splash
-4. If 2+ apps → shows Launcher, user picks one
-5. If 0 apps → shows Error window
-6. Core creates `KislinkaWindow`, `SceneManager`, `SettingsPanel`
-7. Core calls `YourApp.setup(app)` — you build your scenes
-8. On exit, core calls `YourApp.cleanup()`
+2. Core scans `components/` and loads components
+3. Core scans `App/` for applications
+4. If 1 app → launches directly with splash
+5. If 2+ apps → shows Launcher, user picks one
+6. If 0 apps → shows Error window
+7. Core creates `KislinkaWindow`, `SceneManager`, `SettingsPanel`
+8. Core calls `YourApp.setup(app)` — you build your scenes
+9. On exit, core calls `YourApp.cleanup()`
 
 ---
 
@@ -332,6 +345,8 @@ app.storage          # StorageManager — save/load data
 app.locale           # LocaleManager — translate strings
 app.permissions      # PermissionManager — register settings tabs
 app.window           # KislinkaWindow — access titlebar, set size
+app.hooks            # HookManager — register/emit hooks
+app.components       # ComponentManager — access loaded components
 ```
 
 ---
@@ -1040,6 +1055,221 @@ pm.is_allowed(Permission.USER, "change_window_size") # False
 | `USER` | Toggle theme |
 
 Apps **cannot** modify or remove core-owned settings tabs.
+
+---
+
+### Components
+
+Components are plugins that extend or modify the core. They live in `components/` at the project root.
+
+#### Creating a Component
+
+```
+components/
+  MyComponent/
+    manifest.json
+    component.py
+```
+
+**manifest.json:**
+
+```json
+{
+    "name": "MyComponent",
+    "display_name": "My Component",
+    "version": "1.0.0",
+    "author": "Author",
+    "description": "What it does",
+    "main_class": "MyComponent",
+    "entry_point": "component.py",
+    "dependencies": [],
+    "priority": 100
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | Yes | Unique internal name |
+| `display_name` | Yes | Human-readable name |
+| `version` | Yes | Semantic version |
+| `main_class` | Yes | Class name in entry point file |
+| `entry_point` | No | Default: `component.py` |
+| `dependencies` | No | List of component names required before this one |
+| `priority` | No | Load order — lower = loaded first (default: 100) |
+
+**component.py:**
+
+```python
+from core.component import KislinkaComponent
+
+class MyComponent(KislinkaComponent):
+
+    def on_register(self, core):
+        self.core = core
+        # register hooks, read config, init state
+
+    def on_ready(self):
+        # all components loaded — safe to reference others
+        pass
+
+    def on_app_setup(self, app_instance):
+        # user app's setup() completed
+        pass
+
+    def on_app_cleanup(self):
+        # before user app's cleanup()
+        pass
+
+    def on_unload(self):
+        # clean up resources (hooks auto-unregistered by owner name)
+        pass
+```
+
+**Lifecycle:**
+
+```
+scan → load → on_register(core) → on_ready()
+              → on_app_setup(app) → ... → on_app_cleanup()
+              → on_unload()
+```
+
+#### Hooks
+
+Components interact with the core through hooks — events that the core emits at key points.
+
+**Two types:**
+
+| Type | Description | Example |
+|---|---|---|
+| `emit` | Notification (fire-and-forget) | `hooks.emit("after_theme_change", theme_name="dark")` |
+| `filter` | Value passes through chain — each handler can modify it | `qss = hooks.filter("core_qss", qss_string, theme=t)` |
+
+**Registering hooks:**
+
+```python
+def on_register(self, core):
+    core.hooks.register(
+        "after_theme_change",     # event name
+        self.on_theme,            # callback
+        priority=100,             # lower = called first
+        owner="MyComponent",      # auto-cleanup on unload
+    )
+
+def on_theme(self, **kwargs):
+    print(f"Theme is now: {kwargs['theme_name']}")
+```
+
+**Available hooks (emit):**
+
+| Hook | kwargs | When |
+|---|---|---|
+| `core_ready` | — | All components loaded, before app scan |
+| `on_window_created` | `window` | Main window created |
+| `on_window_close` | — | Window closing |
+| `before_app_setup` | `manifest` | Before user app setup |
+| `after_app_setup` | `manifest`, `app_instance` | After user app setup |
+| `before_theme_change` | `old_theme`, `new_theme` | Before theme switches |
+| `after_theme_change` | `theme_name`, `old_theme` | After theme switched |
+| `before_scene_push` | `scene`, `animation` | Before scene push |
+| `after_scene_push` | `scene` | After scene push completes |
+| `before_scene_pop` | `scene`, `animation` | Before scene pop |
+| `after_scene_pop` | `scene` | After scene pop completes |
+| `before_scene_replace` | `scene`, `old_scene`, `animation` | Before scene replace |
+| `after_scene_replace` | `scene` | After scene replace completes |
+| `before_visual_reload` | `manifest` | Before UI rebuild |
+| `after_visual_reload` | `manifest` | After UI rebuild |
+| `before_full_reload` | `manifest` | Before full app reload |
+| `after_full_reload` | `manifest`, `app_instance` | After full app reload |
+| `before_language_change` | `lang`, `old_core`, `old_app` | Before language switch |
+| `after_language_change` | `core_lang`, `app_lang` | After language switched |
+| `after_audio_play` | `file_path` | Audio started playing |
+| `on_audio_pause` | — | Audio paused |
+| `on_audio_resume` | — | Audio resumed |
+| `on_audio_stop` | — | Audio stopped |
+| `on_audio_finished` | — | Track finished naturally |
+| `on_audio_volume` | `volume` | Volume changed |
+| `on_audio_seek` | `position_ms` | Seek position changed |
+| `on_settings_open` | — | Settings panel opened |
+| `on_settings_close` | — | Settings panel closed |
+| `on_error` | `error_type`, `error_msg`, `traceback` | Unhandled exception caught |
+
+**Available hooks (filter):**
+
+| Hook | Value | kwargs | Purpose |
+|---|---|---|---|
+| `core_qss` | QSS string | `theme` | Modify global stylesheet |
+| `translate` | translated string | `key` | Override any translation |
+| `window_title` | title string | — | Modify window title |
+| `splash_text` | app name string | — | Modify splash screen text |
+| `before_audio_play` | file path string | `start_ms` | Redirect/modify audio file path |
+| `settings_tabs` | tabs list | — | Add/remove/reorder settings tabs |
+| `app_manifests` | manifests list | — | Filter apps shown in launcher |
+
+**Filter example — add custom QSS rules:**
+
+```python
+def on_register(self, core):
+    core.hooks.register("core_qss", self.modify_qss, owner="MyComponent")
+
+def modify_qss(self, qss, **kwargs):
+    theme = kwargs["theme"]
+    return qss + f"""
+        QToolTip {{
+            background: {theme.bg_alt};
+            color: {theme.fg};
+            border: 1px solid {theme.border};
+        }}
+    """
+```
+
+#### Accessing Components from Apps
+
+```python
+def setup(self, app):
+    # get a component
+    demo = app.components.get("DemoComponent")
+    if demo:
+        demo.greet("Kislinka")  # call public API
+
+    # check if loaded
+    if app.components.has("Logger"):
+        logger = app.components.get("Logger")
+        logger.info("App started")
+
+    # list all components
+    for name in app.components.names():
+        print(f"Component: {name}")
+```
+
+#### Services & Widgets
+
+Components can register services and widget classes for other components and apps:
+
+```python
+# in component on_register():
+core.components.register_service("http", MyHttpClient())
+core.components.register_widget("ColorPicker", ColorPickerWidget)
+
+# in app:
+http = app.components.get_service("http")
+http.get("https://api.example.com")
+
+ColorPicker = app.components.get_widget("ColorPicker")
+picker = ColorPicker(parent=self.container)
+```
+
+#### Component Storage
+
+Components have persistent storage scoped to their name:
+
+```python
+# in component:
+core.components.storage_set("MyComponent", "api_key", "abc123")
+key = core.components.storage_get("MyComponent", "api_key", "")
+core.components.storage_delete("MyComponent", "api_key")
+
+# stored at: %LOCALAPPDATA%/KislinkaCore/_components/MyComponent/data.json
+```
 
 ---
 

@@ -1,8 +1,9 @@
 """
-Data storage for core and apps.
+Data storage for core, apps, and components.
 
-Core data:  %LOCALAPPDATA%/KislinkaCore/core_settings.json
-App data:   %LOCALAPPDATA%/KislinkaCore/<appname>/app_data.json
+Core data:       %LOCALAPPDATA%/KislinkaCore/core_settings.json
+App data:        %LOCALAPPDATA%/KislinkaCore/<appname>/app_data.json
+Component data:  %LOCALAPPDATA%/KislinkaCore/_components/<compname>/data.json
 
 Usage:
     storage = StorageManager.instance()
@@ -55,6 +56,9 @@ class StorageManager(QObject):
         self._app_name: str = ""
         self._app_file: Path | None = None
         self._app_data: dict = {}
+
+        self._comp_cache: dict[str, dict] = {}  # component_name → data
+        self._comp_dir = self._base_dir / "_components"
 
         # ensure base dir
         self._base_dir.mkdir(parents=True, exist_ok=True)
@@ -118,6 +122,43 @@ class StorageManager(QObject):
         self._app_data.clear()
         if self._app_file:
             self._save_file(self._app_file, self._app_data)
+
+    # ── component data ───────────────────────────────
+
+    def _comp_file(self, comp_name: str) -> Path:
+        return self._comp_dir / comp_name / "data.json"
+
+    def _ensure_comp_loaded(self, comp_name: str) -> dict:
+        if comp_name not in self._comp_cache:
+            self._comp_cache[comp_name] = self._load_file(self._comp_file(comp_name))
+        return self._comp_cache[comp_name]
+
+    def component_get(self, comp_name: str, key: str, default=None):
+        """Read component-scoped data."""
+        data = self._ensure_comp_loaded(comp_name)
+        return data.get(key, default)
+
+    def component_set(self, comp_name: str, key: str, value):
+        """Write component-scoped data."""
+        data = self._ensure_comp_loaded(comp_name)
+        data[key] = value
+        self._save_file(self._comp_file(comp_name), data)
+
+    def component_delete(self, comp_name: str, key: str):
+        """Delete a key from component-scoped data."""
+        data = self._ensure_comp_loaded(comp_name)
+        if key in data:
+            del data[key]
+            self._save_file(self._comp_file(comp_name), data)
+
+    def component_get_all(self, comp_name: str) -> dict:
+        """Get all data for a component."""
+        return dict(self._ensure_comp_loaded(comp_name))
+
+    def component_clear(self, comp_name: str):
+        """Clear all data for a component."""
+        self._comp_cache[comp_name] = {}
+        self._save_file(self._comp_file(comp_name), {})
 
     # ── file I/O ────────────────────────────────────
 

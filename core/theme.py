@@ -6,6 +6,8 @@ Font declarations REMOVED from QSS — handled by Fonts module.
 from PyQt6.QtCore import QObject, pyqtSignal
 from dataclasses import dataclass
 
+from core.hooks import HookManager
+
 
 @dataclass(frozen=True)
 class Theme:
@@ -82,8 +84,12 @@ class ThemeManager(QObject):
 
     def set_theme(self, name: str) -> None:
         if name in _THEMES and name != self._theme.name:
+            old_name = self._theme.name
+            hooks = HookManager.instance()
+            hooks.emit("before_theme_change", old_theme=old_name, new_theme=name)
             self._theme = _THEMES[name]
             self.changed.emit()
+            hooks.emit("after_theme_change", theme_name=name, old_theme=old_name)
 
     def toggle(self) -> None:
         self.set_theme("light" if self.is_dark else "dark")
@@ -94,7 +100,8 @@ class ThemeManager(QObject):
         NO font declarations — Fonts module handles that.
         """
         t = self._theme
-        return f"""
+        hooks = HookManager.instance()
+        qss = f"""
             * {{ margin: 0; padding: 0; }}
 
             QWidget {{
@@ -130,3 +137,4 @@ class ThemeManager(QObject):
                 background: none; width: 0;
             }}
         """
+        return hooks.filter("core_qss", qss, theme=t)

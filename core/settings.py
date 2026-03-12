@@ -16,6 +16,7 @@ from core.permissions import PermissionManager, Permission
 from core.fonts import Fonts
 from core.storage import StorageManager
 from core.locale import LocaleManager
+from core.hooks import HookManager
 from widgets.klabel import KLabel
 from widgets.kbutton import KButton
 from widgets.ktoggle import KToggle
@@ -128,6 +129,7 @@ class SettingsPanel:
         if self._titlebar:
             self._titlebar.hide_custom_buttons()
         self._sm.push(self._build_menu(), AnimationType.SLIDE_LEFT)
+        HookManager.instance().emit("on_settings_open")
 
     def close(self):
         if not self._is_open or self._sm.is_animating:
@@ -135,7 +137,16 @@ class SettingsPanel:
         self._is_open = False
         if self._titlebar:
             self._titlebar.show_custom_buttons()
+        # pop all intermediate settings pages instantly, animate the last one
+        while self._sm.stack_depth > self._entry_depth + 1:
+            old = self._sm._stack.pop()
+            if self._sm._stack:
+                self._sm._current = self._sm._stack[-1]
+            if old:
+                old.hide()
+                old.setParent(None)
         self._sm.pop(AnimationType.SLIDE_RIGHT)
+        HookManager.instance().emit("on_settings_close")
 
     def force_close(self):
         """Close all settings pages instantly."""
@@ -195,6 +206,8 @@ class SettingsPanel:
         cl.setSpacing(12)
 
         tabs = self._pm.get_settings_tabs()
+        # filter: components can add/remove/reorder tabs
+        tabs = HookManager.instance().filter("settings_tabs", tabs)
         for tab in tabs:
             builder = tab["builder"]
             display_name = self._loc.t(tab["name"], tab["name"])

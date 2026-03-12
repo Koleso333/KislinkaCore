@@ -13,6 +13,8 @@ from pathlib import Path
 
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 
+from core.hooks import HookManager
+
 
 ROOT = Path(__file__).resolve().parent.parent
 BIN_DIR = ROOT / "assets" / "bin"
@@ -165,11 +167,16 @@ class AudioPlayer(QObject):
 
     def play(self, file_path: str | Path, start_ms: int = 0):
         """Play an audio file."""
+        hooks = HookManager.instance()
+
         if not self._ensure_mixer():
             self.error.emit("Audio system not available")
             return
 
         path = Path(file_path)
+        # filter: components can redirect file path
+        path = Path(hooks.filter("before_audio_play", str(path), start_ms=start_ms))
+
         if not path.exists():
             self.error.emit(f"File not found: {path}")
             return
@@ -219,6 +226,7 @@ class AudioPlayer(QObject):
 
             self._timer.start()
             self.started.emit()
+            hooks.emit("after_audio_play", file_path=str(path))
             _log(f"Playing: {path.name}")
 
         except Exception as e:
@@ -257,6 +265,7 @@ class AudioPlayer(QObject):
             self._paused_flag = True
             self._timer.stop()
             self.paused.emit()
+            HookManager.instance().emit("on_audio_pause")
             _log("Paused")
         except Exception as e:
             _log(f"⚠ Pause error: {e}")
@@ -271,6 +280,7 @@ class AudioPlayer(QObject):
             self._paused_flag = False
             self._timer.start()
             self.resumed.emit()
+            HookManager.instance().emit("on_audio_resume")
             _log("Resumed")
         except Exception as e:
             _log(f"⚠ Resume error: {e}")
@@ -284,6 +294,7 @@ class AudioPlayer(QObject):
     def stop(self):
         self._stop_internal()
         self.stopped.emit()
+        HookManager.instance().emit("on_audio_stop")
         _log("Stopped")
 
     def set_volume(self, vol: float):
@@ -294,6 +305,7 @@ class AudioPlayer(QObject):
             except Exception:
                 pass
         self.volume_changed.emit(self._volume)
+        HookManager.instance().emit("on_audio_volume", volume=self._volume)
 
     def seek(self, position_ms: int):
         if not self._playing or not self._current_file:
@@ -306,6 +318,7 @@ class AudioPlayer(QObject):
             self._play_start_pos = position_ms
             self._position_ms = position_ms
             self.position_changed.emit(self._position_ms)
+            HookManager.instance().emit("on_audio_seek", position_ms=position_ms)
         except Exception as e:
             _log(f"⚠ Seek error: {e}")
 
@@ -336,6 +349,7 @@ class AudioPlayer(QObject):
                     self._position_ms = self._duration_ms
                     self.position_changed.emit(self._position_ms)
                     self.finished.emit()
+                    HookManager.instance().emit("on_audio_finished")
                     self._cleanup_temp()
                     _log("Track finished")
                 return

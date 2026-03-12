@@ -8,6 +8,7 @@ from PyQt6.QtGui import QPainter
 
 from core.titlebar import TitleBar
 from core.theme import ThemeManager
+from core.hooks import HookManager
 
 
 class KislinkaWindow(QWidget):
@@ -87,6 +88,8 @@ class KislinkaWindow(QWidget):
         self._body_layout.addWidget(widget, 1)
 
     def set_title(self, title: str):
+        hooks = HookManager.instance()
+        title = hooks.filter("window_title", title)
         self._titlebar.set_title(title)
 
     def set_size(self, width: int, height: int):
@@ -116,6 +119,8 @@ class KislinkaWindow(QWidget):
 
     def closeEvent(self, event):
         """When main window closes, quit ONLY if should_quit is True."""
+        hooks = HookManager.instance()
+        hooks.emit("on_window_close")
         event.accept()
         if self._should_quit:
             QApplication.quit()

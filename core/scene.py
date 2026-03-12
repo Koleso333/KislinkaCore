@@ -8,6 +8,8 @@ from PyQt6.QtCore import (
     QPoint, pyqtSignal,
 )
 
+from core.hooks import HookManager
+
 
 class Scene(QWidget):
     """Base scene."""
@@ -53,6 +55,7 @@ class SceneManager(QWidget):
         self._stack: list[Scene] = []
         self._current: Scene | None = None
         self._animating = False
+        self._pending_action: str = ""
         self._anim_new: QPropertyAnimation | None = None
         self._anim_old: QPropertyAnimation | None = None
 
@@ -71,26 +74,35 @@ class SceneManager(QWidget):
     def push(self, scene: Scene, animation: str = AnimationType.SLIDE_LEFT):
         if self._animating:
             return
+        hooks = HookManager.instance()
+        hooks.emit("before_scene_push", scene=scene, animation=animation)
         old = self._current
         self._stack.append(scene)
         self._current = scene
+        self._pending_action = "push"
         self._transition(old, scene, animation)
 
     def pop(self, animation: str = AnimationType.SLIDE_RIGHT) -> Scene | None:
         if self._animating or len(self._stack) <= 1:
             return None
+        hooks = HookManager.instance()
+        hooks.emit("before_scene_pop", scene=self._current, animation=animation)
         old = self._stack.pop()
         self._current = self._stack[-1]
+        self._pending_action = "pop"
         self._transition(old, self._current, animation, removing=old)
         return old
 
     def replace(self, scene: Scene, animation: str = AnimationType.SLIDE_LEFT):
         if self._animating:
             return
+        hooks = HookManager.instance()
+        hooks.emit("before_scene_replace", scene=scene, old_scene=self._current, animation=animation)
         old = self._current
         removing = self._stack.pop() if self._stack else None
         self._stack.append(scene)
         self._current = scene
+        self._pending_action = "replace"
         self._transition(old, scene, animation, removing=removing)
 
     def _transition(self, old: Scene | None, new: Scene, animation: str, removing: Scene | None = None):
@@ -110,6 +122,7 @@ class SceneManager(QWidget):
                 removing.hide()
                 removing.setParent(None)
             self.scene_changed.emit(new.name)
+            self._emit_after_hook(new)
             return
 
         # slide animation
@@ -170,12 +183,27 @@ class SceneManager(QWidget):
             self._removing.setParent(None)
 
         self.scene_changed.emit(self._new_scene.name)
+        self._emit_after_hook(self._new_scene)
 
         self._anim_new = None
         self._anim_old = None
         self._old_scene = None
         self._new_scene = None
         self._removing = None
+
+    def _emit_after_hook(self, scene: Scene):
+        """Emit the appropriate after_scene_* hook based on pending action."""
+        hooks = HookManager.instance()
+        action = getattr(self, "_pending_action", "")
+        if action == "push":
+            hooks.emit("after_scene_push", scene=scene)
+        elif action == "pop":
+            hooks.emit("after_scene_pop", scene=scene)
+        elif action == "replace":
+            hooks.emit("after_scene_replace", scene=scene)
+        else:
+            hooks.emit("on_scene_changed", scene=scene)
+        self._pending_action = ""
 
     def _force_pop(self):
         """Pop instantly without animation. Used internally by settings."""

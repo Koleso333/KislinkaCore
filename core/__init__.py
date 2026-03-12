@@ -1,5 +1,8 @@
 """KislinkaCore — Minimal B&W application framework."""
 
+from core.hooks import HookManager
+from core.component import KislinkaComponent
+from core.component_manager import ComponentManager
 from core.theme import ThemeManager, Theme, DARK, LIGHT
 from core.fonts import Fonts
 from core.app import KislinkaApp
@@ -27,4 +30,7 @@ __all__ = [
     "ErrorHandler", "ErrorWindow",
     "LauncherWindow",
     "SplashOverlay",
+    "HookManager",
+    "KislinkaComponent",
+    "ComponentManager",
 ]

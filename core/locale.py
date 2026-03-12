@@ -10,6 +10,8 @@ import json
 from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal
 
+from core.hooks import HookManager
+
 
 CORE_LOCALES_DIR = Path(__file__).resolve().parent / "locales"
 
@@ -76,10 +78,11 @@ class LocaleManager(QObject):
     def set_language(self, lang: str):
         """
         Set language. Independently applies to core and app.
-        - If lang exists in core → core switches
-        - If lang exists in app → app switches
-        - If lang missing in one → that one keeps its previous language
         """
+        hooks = HookManager.instance()
+        hooks.emit("before_language_change", lang=lang,
+                   old_core=self._core_language, old_app=self._app_language)
+
         changed = False
 
         if lang in self._core_strings:
@@ -104,6 +107,8 @@ class LocaleManager(QObject):
 
         if changed:
             self.changed.emit()
+            hooks.emit("after_language_change",
+                       core_lang=self._core_language, app_lang=self._app_language)
 
     def validate_language(self):
         """
@@ -125,29 +130,34 @@ class LocaleManager(QObject):
         """
         Get translated string.
         Core keys use core_language, app keys use app_language.
-        Priority: app strings (app_lang) → core strings (core_lang) → english → key
+        Priority: hook filter → app strings → core strings → english → key
         """
         # try app strings with app language
         app_lang_strings = self._app_strings.get(self._app_language, {})
         if key in app_lang_strings:
-            return app_lang_strings[key]
+            result = app_lang_strings[key]
+            return HookManager.instance().filter("translate", result, key=key)
 
         # try core strings with core language
         core_lang_strings = self._core_strings.get(self._core_language, {})
         if key in core_lang_strings:
-            return core_lang_strings[key]
+            result = core_lang_strings[key]
+            return HookManager.instance().filter("translate", result, key=key)
 
         # fallback to english in app
         app_en = self._app_strings.get("en", {})
         if key in app_en:
-            return app_en[key]
+            result = app_en[key]
+            return HookManager.instance().filter("translate", result, key=key)
 
         # fallback to english in core
         core_en = self._core_strings.get("en", {})
         if key in core_en:
-            return core_en[key]
+            result = core_en[key]
+            return HookManager.instance().filter("translate", result, key=key)
 
-        return fallback or key
+        result = fallback or key
+        return HookManager.instance().filter("translate", result, key=key)
 
     # ── available languages ─────────────────────────
 

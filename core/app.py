@@ -20,6 +20,8 @@ from core.locale import LocaleManager
 from core.error_handler import ErrorHandler, KislinkaQApplication
 from core.launcher import LauncherWindow
 from core.splash import SplashOverlay
+from core.hooks import HookManager
+from core.component_manager import ComponentManager
 from audio.player import AudioPlayer
 
 
@@ -53,6 +55,8 @@ class KislinkaApp:
         self._storage = StorageManager.instance()
         self._locale = LocaleManager.instance()
         self._audio = AudioPlayer.instance()
+        self._hooks = HookManager.instance()
+        self._components = ComponentManager.instance()
         self._loader = AppLoader()
 
         load_fonts()
@@ -118,6 +122,14 @@ class KislinkaApp:
     @property
     def locale(self) -> LocaleManager:
         return self._locale
+
+    @property
+    def hooks(self) -> HookManager:
+        return self._hooks
+
+    @property
+    def components(self) -> ComponentManager:
+        return self._components
 
     @property
     def qt(self) -> QApplication:
@@ -203,6 +215,13 @@ class KislinkaApp:
                 _log(f"⚠ on_language_changed error: {e}")
 
     def run(self) -> None:
+        # ── load components ─────────────────────────
+        self._components.scan()
+        self._components.load_all(self)
+        self._components.notify_ready()
+        self._hooks.emit("core_ready")
+
+        # ── scan and launch apps ────────────────────
         manifests = self._loader.scan()
 
         if len(manifests) == 0:
@@ -213,6 +232,7 @@ class KislinkaApp:
             self._start_launcher(manifests)
 
         exit_code = self._qt.exec()
+        self._components.unload_all()
         self._audio.shutdown()
         sys.exit(exit_code)
 
@@ -310,6 +330,9 @@ class KislinkaApp:
         manifest = self._current_manifest
         self._reloading = True
 
+        self._hooks.emit("before_visual_reload", manifest=manifest)
+        self._components.notify_app_cleanup()
+
         settings_snap = None
         try:
             if self._settings:
@@ -396,6 +419,7 @@ class KislinkaApp:
             traceback.print_exc()
         finally:
             self._reloading = False
+            self._hooks.emit("after_visual_reload", manifest=manifest)
 
     def full_reload(self):
         """Full reload: destroys app instance and re-imports module (resets app runtime state)."""
@@ -408,6 +432,9 @@ class KislinkaApp:
         self._reloading = True
         try:
             manifest = self._current_manifest
+
+            self._hooks.emit("before_full_reload", manifest=manifest)
+            self._components.notify_app_cleanup()
 
             # cleanup old app
             if hasattr(self._current_app, "cleanup"):
@@ -485,6 +512,9 @@ class KislinkaApp:
             try:
                 app_instance.setup(self)
                 _log(f"App reloaded: {manifest.display_name}")
+
+                self._hooks.emit("after_full_reload", manifest=manifest, app_instance=app_instance)
+                self._components.notify_app_setup(app_instance)
             except Exception as e:
                 _log(f" App reload error: {e}")
                 import traceback
@@ -511,10 +541,14 @@ class KislinkaApp:
         # when theme changes, refresh visuals in place (non-destructive)
         self._theme.changed.connect(self._schedule_theme_refresh)
 
+        self._hooks.emit("on_window_created", window=self._window)
+
     # ── App setup ───────────────────────────────────
 
     def _setup_app(self, manifest: AppManifest):
         _log(f"Setting up: {manifest.display_name}")
+
+        self._hooks.emit("before_app_setup", manifest=manifest)
 
         self._settings.set_app_manifest(manifest)
         self._locale.load_app_locales(manifest.path)
@@ -534,3 +568,5 @@ class KislinkaApp:
         self._current_manifest = manifest
 
         app_instance.setup(self)
+        self._hooks.emit("after_app_setup", manifest=manifest, app_instance=app_instance)
+        self._components.notify_app_setup(app_instance)

@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
 from PyQt6.QtGui import QPainter, QFont, QColor
 
+from core.hooks import HookManager
+
 
 class SplashOverlay(QWidget):
     """
@@ -16,7 +18,8 @@ class SplashOverlay(QWidget):
     def __init__(self, parent_window: QWidget, app_name: str = "Loading..."):
         # parent is the WINDOW itself, not body
         super().__init__(parent_window)
-        self._app_name = app_name
+        hooks = HookManager.instance()
+        self._app_name = hooks.filter("splash_text", app_name)
         self._scale = 1.0
         self._opacity = 1.0
         self._finished = False

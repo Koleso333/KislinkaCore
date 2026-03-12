@@ -195,6 +195,15 @@ class ErrorHandler:
         _log(f"Caught exception: {error_type}: {error_msg}")
         print(tb_text)
 
+        # hook: components can react to errors (logging, reporting, etc.)
+        try:
+            from core.hooks import HookManager
+            hooks = HookManager.instance()
+            hooks.emit("on_error", error_type=error_type,
+                       error_msg=error_msg, traceback=tb_text)
+        except Exception:
+            pass
+
         cls.show_error(error_type, error_msg, tb_text)
 
     @classmethod
