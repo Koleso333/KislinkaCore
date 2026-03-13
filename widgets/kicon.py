@@ -8,6 +8,9 @@ from pathlib import Path
 from PyQt6.QtCore import QByteArray, Qt, QRectF
 from PyQt6.QtGui import QPixmap, QPainter, QIcon, QPen, QColor
 
+_ROOT = Path(__file__).resolve().parent.parent
+_ICONS_DIR = _ROOT / "assets" / "icons"
+
 # ── try SVG renderer ────────────────────────────────────────
 try:
     from PyQt6.QtSvg import QSvgRenderer
@@ -120,11 +123,19 @@ def load_svg_icon(
     svg_text: str | None = None
 
     if name_or_path in _EMBEDDED:
-        svg_text = _EMBEDDED[name_or_path]
+        asset_path = _ICONS_DIR / f"{name_or_path}.svg"
+        if asset_path.is_file():
+            svg_text = asset_path.read_text(encoding="utf-8")
+        else:
+            svg_text = _EMBEDDED[name_or_path]
     else:
         path = Path(name_or_path)
         if path.is_file():
             svg_text = path.read_text(encoding="utf-8")
+        else:
+            candidate = _ICONS_DIR / f"{name_or_path}.svg"
+            if candidate.is_file():
+                svg_text = candidate.read_text(encoding="utf-8")
 
     # ── recolour ────────────────────────────────────
     if svg_text is not None:
