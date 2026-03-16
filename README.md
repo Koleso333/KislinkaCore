@@ -1083,7 +1083,8 @@ components/
     "main_class": "MyComponent",
     "entry_point": "component.py",
     "dependencies": [],
-    "priority": 100
+    "priority": 100,
+    "hidden_imports": []
 }
 ```
 
@@ -1096,6 +1097,7 @@ components/
 | `entry_point` | No | Default: `component.py` |
 | `dependencies` | No | List of component names required before this one |
 | `priority` | No | Load order — lower = loaded first (default: 100) |
+| `hidden_imports` | No | List of Python modules to include in frozen exe (for PyInstaller) |
 
 **component.py:**
 
@@ -1132,6 +1134,53 @@ scan → load → on_register(core) → on_ready()
               → on_app_setup(app) → ... → on_app_cleanup()
               → on_unload()
 ```
+
+#### Dynamic Imports & hidden_imports
+
+If your component uses `importlib` to dynamically load modules (e.g., loading plugins from a `modules/` folder), PyInstaller won't detect these imports during static analysis. This causes `ImportError` or `AttributeError` at runtime in frozen executables.
+
+**Solution:** Add all dynamically imported modules to `hidden_imports` in your `manifest.json`:
+
+```json
+{
+    "name": "KislinkaWinapi",
+    "hidden_imports": [
+        "win32api",
+        "win32con",
+        "pywintypes",
+        "pythoncom"
+    ]
+}
+```
+
+**Example component with dynamic loading:**
+
+```python
+import importlib.util
+import sys
+from pathlib import Path
+from core.component import KislinkaComponent
+
+# Handle PyInstaller frozen path
+if getattr(sys, 'frozen', False):
+    _DIR = Path(sys._MEIPASS) / "components" / "MyComponent"
+else:
+    _DIR = Path(__file__).parent
+
+def _load_module(name):
+    path = _DIR / "modules" / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(f"mycomp.{name}", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+class MyComponent(KislinkaComponent):
+    def on_register(self, core):
+        # These modules must be listed in hidden_imports!
+        self.feature = _load_module("feature")
+```
+
+**Important:** When using `sys._MEIPASS` for frozen apps, always construct paths relative to the extracted bundle root, not `__file__`.
 
 #### Hooks
 
@@ -1409,6 +1458,11 @@ KButton("Crash", on_click=lambda: 1/0)
 **Splash:** Shown inside the main window while the app loads. Displays the app name in large Mitr font. Animates out with scale-up + fade (400ms).
 
 Both are handled entirely by the core — no app code needed.
+
+**Splash behavior:**
+- Single app mode: Splash appears immediately after window creation
+- Launcher mode: Splash appears after user selects an app from the launcher
+- The splash covers the entire window (including titlebar) and animates out after app setup completes
 
 ---
 

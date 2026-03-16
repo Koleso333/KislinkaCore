@@ -7,6 +7,7 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QIcon
 
 from core.theme import ThemeManager
 from core.fonts import load_fonts
@@ -27,6 +28,7 @@ from audio.player import AudioPlayer
 
 ROOT   = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
+DEFAULT_APP_ICON = ASSETS / "another" / "default_app.png"
 
 
 def _log(msg: str) -> None:
@@ -83,7 +85,7 @@ class KislinkaApp:
         self._pending_theme_refresh = False
         self._pending_language_refresh = False
 
-        _log("Core initialised ✓")
+        _log("Core initialised ")
 
     @classmethod
     def instance(cls) -> "KislinkaApp":
@@ -197,7 +199,7 @@ class KislinkaApp:
             try:
                 self._current_app.on_theme_changed()
             except Exception as e:
-                _log(f"⚠ on_theme_changed error: {e}")
+                _log(f" on_theme_changed error: {e}")
 
     def _refresh_language_in_place(self):
         """Non-destructive language refresh: update texts without rebuilding UI."""
@@ -212,7 +214,7 @@ class KislinkaApp:
             try:
                 self._current_app.on_language_changed()
             except Exception as e:
-                _log(f"⚠ on_language_changed error: {e}")
+                _log(f" on_language_changed error: {e}")
 
     def run(self) -> None:
         # ── load components ─────────────────────────
@@ -257,6 +259,7 @@ class KislinkaApp:
 
         # create window
         self._create_window(manifest.display_name, manifest.width, manifest.height)
+        self._apply_app_icon(manifest)
 
         # splash covers ENTIRE window (parent = window, not body)
         self._splash = SplashOverlay(self._window, manifest.display_name)
@@ -298,6 +301,7 @@ class KislinkaApp:
 
         # create window
         self._create_window(manifest.display_name, manifest.width, manifest.height)
+        self._apply_app_icon(manifest)
 
         # splash covers ENTIRE window
         self._splash = SplashOverlay(self._window, manifest.display_name)
@@ -412,7 +416,7 @@ class KislinkaApp:
                 if self._settings and settings_snap:
                     self._settings.restore(settings_snap)
             except Exception as e:
-                _log(f"⚠ Settings restore error: {e}")
+                _log(f" Settings restore error: {e}")
         except Exception as e:
             _log(f" Visual reload error: {e}")
             import traceback
@@ -543,6 +547,35 @@ class KislinkaApp:
 
         self._hooks.emit("on_window_created", window=self._window)
 
+    def _resolve_app_icon_path(self, manifest: AppManifest) -> Path:
+        app_assets = manifest.path / "assets"
+        ico = app_assets / "icon.ico"
+        if ico.exists():
+            return ico
+        png = app_assets / "icon.png"
+        if png.exists():
+            return png
+        return DEFAULT_APP_ICON
+
+    def _apply_app_icon(self, manifest: AppManifest) -> None:
+        icon_path = self._resolve_app_icon_path(manifest)
+        if not icon_path.exists():
+            return
+
+        icon = QIcon(str(icon_path))
+        if icon.isNull():
+            return
+
+        try:
+            self._qt.setWindowIcon(icon)
+        except Exception:
+            pass
+        try:
+            if self._window:
+                self._window.setWindowIcon(icon)
+        except Exception:
+            pass
+
     # ── App setup ───────────────────────────────────
 
     def _setup_app(self, manifest: AppManifest):
@@ -550,13 +583,15 @@ class KislinkaApp:
 
         self._hooks.emit("before_app_setup", manifest=manifest)
 
+        self._apply_app_icon(manifest)
+
         self._settings.set_app_manifest(manifest)
         self._locale.load_app_locales(manifest.path)
         self._storage.set_app(manifest.name)
 
         app_instance = self._loader.load_app(manifest)
         if app_instance is None:
-            _log("⚠ Failed to load app")
+            _log(" Failed to load app")
             ErrorHandler.show_error(
                 "Failed to Load Application",
                 f"Could not load {manifest.display_name}",
