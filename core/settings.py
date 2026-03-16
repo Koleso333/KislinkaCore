@@ -21,6 +21,7 @@ from widgets.klabel import KLabel
 from widgets.kbutton import KButton
 from widgets.ktoggle import KToggle
 from widgets.kicon import load_svg_icon
+from widgets.kscrollarea import KScrollArea
 
 
 CORE_INFO_PATH = Path(__file__).resolve().parent / "core_info.json"
@@ -215,7 +216,9 @@ class SettingsPanel:
             cl.addWidget(btn)
 
         cl.addStretch()
-        lay.addWidget(content, 1)
+        scroll = KScrollArea()
+        scroll.set_content(content)
+        lay.addWidget(scroll, 1)
         return scene
 
     def _make_tab_opener(self, builder):
@@ -277,7 +280,9 @@ class SettingsPanel:
 
         cl.addWidget(KLabel(self._loc.t("theme_description"), style="dim"))
         cl.addStretch()
-        lay.addWidget(content, 1)
+        scroll = KScrollArea()
+        scroll.set_content(content)
+        lay.addWidget(scroll, 1)
         return scene
 
     # ── language ────────────────────────────────────
@@ -343,7 +348,9 @@ class SettingsPanel:
             cl.addWidget(btn)
 
         cl.addStretch()
-        lay.addWidget(content, 1)
+        scroll = KScrollArea()
+        scroll.set_content(content)
+        lay.addWidget(scroll, 1)
         return scene
 
     def _build_about_page(self) -> Scene:
@@ -393,7 +400,9 @@ class SettingsPanel:
         cl.addWidget(btn_core)
 
         cl.addStretch()
-        lay.addWidget(content, 1)
+        scroll = KScrollArea()
+        scroll.set_content(content)
+        lay.addWidget(scroll, 1)
         return scene
 
     # ── about the core ──────────────────────────────
@@ -437,7 +446,9 @@ class SettingsPanel:
             cl.addWidget(row)
 
         cl.addStretch()
-        lay.addWidget(content, 1)
+        scroll = KScrollArea()
+        scroll.set_content(content)
+        lay.addWidget(scroll, 1)
         return scene
 
     # ── helpers ─────────────────────────────────────

@@ -6,7 +6,9 @@ Core icons are embedded — no external files needed.
 from pathlib import Path
 
 from PyQt6.QtCore import QByteArray, Qt, QRectF
-from PyQt6.QtGui import QPixmap, QPainter, QIcon, QPen, QColor
+from PyQt6.QtGui import QPixmap, QPainter, QIcon, QPen, QColor, QImage
+
+from core.theme import ThemeManager
 
 _ROOT = Path(__file__).resolve().parent.parent
 _ICONS_DIR = _ROOT / "assets" / "icons"
@@ -101,6 +103,39 @@ def _fallback_pixmap(name: str, color: str, size: int) -> QPixmap:
     return pix
 
 
+def _should_invert_for_light_theme(img: QImage) -> bool:
+    """Heuristic: if the rendered icon is mostly bright (white-ish), invert it."""
+    if img.isNull():
+        return False
+
+    w = img.width()
+    h = img.height()
+    if w <= 0 or h <= 0:
+        return False
+
+    # Sample a sparse grid to keep it cheap.
+    step_x = max(1, w // 8)
+    step_y = max(1, h // 8)
+
+    bright = 0
+    total = 0
+
+    for y in range(0, h, step_y):
+        for x in range(0, w, step_x):
+            c = img.pixelColor(x, y)
+            if c.alpha() < 10:
+                continue
+            total += 1
+            if (c.red() + c.green() + c.blue()) >= (235 * 3):
+                bright += 1
+
+    # If there are no opaque pixels, do nothing.
+    if total == 0:
+        return False
+
+    return (bright / total) >= 0.60
+
+
 # ── public API ──────────────────────────────────────────────
 
 def load_svg_icon(
@@ -151,6 +186,16 @@ def load_svg_icon(
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
             renderer.render(painter, QRectF(0, 0, size, size))
             painter.end()
+
+            # Light theme fix: many external SVGs are hardcoded white and do not
+            # use the #FFFFFF template, so they become invisible on light theme.
+            tm = ThemeManager.instance()
+            if not tm.is_dark:
+                img = pix.toImage().convertToFormat(QImage.Format.Format_ARGB32)
+                if _should_invert_for_light_theme(img):
+                    img.invertPixels(QImage.InvertMode.InvertRgb)
+                    pix = QPixmap.fromImage(img)
+
             return QIcon(pix)
 
     # ── fallback ────────────────────────────────────
