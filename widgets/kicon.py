@@ -142,6 +142,7 @@ def load_svg_icon(
     name_or_path: str,
     color: str = "#FFFFFF",
     size: int = 16,
+    auto_invert: bool = True,
 ) -> QIcon:
     """
     Load an SVG icon with colour replacement.
@@ -153,6 +154,9 @@ def load_svg_icon(
         Hex colour string.  Replaces the template #FFFFFF.
     size:
         Pixel size of the resulting square icon.
+    auto_invert:
+        If True (default), automatically invert bright icons on light theme.
+        Set to False to disable this heuristic and use the exact color.
     """
     # ── resolve SVG source ──────────────────────────
     svg_text: str | None = None
@@ -174,7 +178,13 @@ def load_svg_icon(
 
     # ── recolour ────────────────────────────────────
     if svg_text is not None:
-        svg_text = svg_text.replace("#FFFFFF", color).replace("#ffffff", color)
+        svg_text = (
+            svg_text
+            .replace("#FFFFFF", color)
+            .replace("#ffffff", color)
+            .replace('stroke="white"', f'stroke="{color}"')
+            .replace('fill="white"', f'fill="{color}"')
+        )
 
     # ── render with QSvgRenderer ────────────────────
     if svg_text and _HAS_SVG:
@@ -189,12 +199,13 @@ def load_svg_icon(
 
             # Light theme fix: many external SVGs are hardcoded white and do not
             # use the #FFFFFF template, so they become invisible on light theme.
-            tm = ThemeManager.instance()
-            if not tm.is_dark:
-                img = pix.toImage().convertToFormat(QImage.Format.Format_ARGB32)
-                if _should_invert_for_light_theme(img):
-                    img.invertPixels(QImage.InvertMode.InvertRgb)
-                    pix = QPixmap.fromImage(img)
+            if auto_invert:
+                tm = ThemeManager.instance()
+                if not tm.is_dark:
+                    img = pix.toImage().convertToFormat(QImage.Format.Format_ARGB32)
+                    if _should_invert_for_light_theme(img):
+                        img.invertPixels(QImage.InvertMode.InvertRgb)
+                        pix = QPixmap.fromImage(img)
 
             return QIcon(pix)
 

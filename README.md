@@ -26,10 +26,16 @@ Documentation is created for version 0.1.1b1 (and commits)
     - [KButton](#kbutton)
     - [KTextField](#ktextfield)
     - [KToggle](#ktoggle)
+    - [KCheckbox](#kcheckbox)
+    - [KDropdown](#kdropdown)
     - [KSlider](#kslider)
+    - [KProgressBar](#kprogressbar)
+    - [KList](#klist)
+    - [KTable](#ktable)
     - [KPanel](#kpanel)
     - [KDivider](#kdivider)
     - [KScrollArea](#kscrollarea)
+    - [KSettingsItem](#ksettingsitem)
     - [KRow / KColumn / KGrid](#krow--kcolumn--kgrid)
   - [Theme](#theme)
   - [Audio](#audio)
@@ -528,6 +534,56 @@ Design:
 - Animated knob slide (150ms)
 - White track when on, gray when off (dark theme)
 
+#### KCheckbox
+
+```python
+from widgets.kcheckbox import KCheckbox
+
+# Basic
+checkbox = KCheckbox("Remember me", checked=False)
+checkbox.toggled.connect(lambda v: print(f"Checked: {v}"))
+
+# Read / write
+is_checked = checkbox.isChecked()
+checkbox.setChecked(True)
+```
+
+Design:
+- Custom painted box with rounded corners
+- Unchecked: empty box with cross icon (✕)
+- Checked: filled box with checkmark icon (✓)
+- Icons adapt to theme: white on dark, black on light
+- No hover effect
+
+#### KDropdown
+
+```python
+from widgets.kdropdown import KDropdown
+
+# Basic
+dropdown = KDropdown(["Option A", "Option B", "Option C"])
+
+# With placeholder
+dropdown = KDropdown(placeholder="Select an option...")
+
+# Editable
+dropdown = KDropdown(["A", "B"], editable=True)
+
+# Set items dynamically
+dropdown.set_items(["New A", "New B", "New C"])
+
+# Read / write
+idx = dropdown.currentIndex()
+val = dropdown.currentText()
+dropdown.setCurrentIndex(1)
+```
+
+Design:
+- Themed combobox with animated arrow rotation
+- Arrow rotates 180° when popup opens/closes
+- Rounded corners (6px)
+- Theme-aware colors and selection highlight
+
 #### KSlider
 
 ```python
@@ -550,6 +606,73 @@ Design:
 - Knob slides with 120ms ease-out animation
 - Mouse wheel support (step or 1% increments)
 - Theme-aware colors
+
+#### KProgressBar
+
+```python
+from widgets.kprogressbar import KProgressBar
+
+# Basic
+progress = KProgressBar(value=50)
+
+# With range
+progress = KProgressBar(minimum=0, maximum=1000, value=250)
+
+# Show percentage text
+progress = KProgressBar(value=75, show_text=True)
+
+# Read / write
+val = progress.value()
+progress.setValue(80)
+```
+
+Design:
+- Fully rounded fill (caps are round)
+- Text color inverts on filled area for contrast
+- Theme-aware colors
+
+#### KList
+
+```python
+from widgets.klist import KList
+
+# Basic
+lst = KList(["Item 1", "Item 2", "Item 3"])
+
+# Set items dynamically
+lst.set_items(["A", "B", "C"])
+
+# Selection
+item = lst.currentItem()
+lst.itemClicked.connect(lambda item: print(item.text()))
+```
+
+Design:
+- Themed QListWidget with rounded corners
+- Hover and selection highlight
+- No grid lines, clean appearance
+
+#### KTable
+
+```python
+from widgets.ktable import KTable
+
+# Basic
+table = KTable(rows=3, columns=2, headers=["Name", "Value"])
+
+# Set cell content
+table.setItem(0, 0, QTableWidgetItem("Row 1"))
+table.setItem(0, 1, QTableWidgetItem("100"))
+
+# Headers stretch to fill width
+table.set_headers(["Col A", "Col B", "Col C"])
+```
+
+Design:
+- Themed QTableWidget with hidden vertical header
+- Columns stretch to fill width
+- Selection highlight inverts colors
+- Clean header styling with bottom border
 
 #### KPanel
 
@@ -604,6 +727,26 @@ scroll.set_content(my_widget)
 ```
 
 Auto-themed background, horizontal scroll off by default.
+
+#### KSettingsItem
+
+```python
+from widgets.ksettingsitem import KSettingsItem
+
+# Basic
+item = KSettingsItem("Theme", icon_name="settings")
+item.clicked.connect(lambda: print("Clicked!"))
+
+# Without arrow
+item = KSettingsItem("Version 1.0", icon_name="info", show_arrow=False)
+```
+
+Design:
+- iOS-style settings row with rounded corners
+- Optional icon on the left
+- Optional arrow (›) on the right
+- Hover and press states
+- Bottom separator line
 
 #### KRow / KColumn / KGrid
 
