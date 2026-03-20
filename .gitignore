@@ -4,6 +4,6 @@ __pycache__/
 .idea/
 App/
 .continue/
-components/
+/components/
 KislinkaTools/Cash/
 KislinkaTools/BuildComplete/
