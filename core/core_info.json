@@ -1,6 +1,6 @@
 {
     "name": "Kislinka Core",
-    "version": "0.1.1b2",
+    "version": "0.1.1",
     "author": "Koleso",
     "framework": "Python + PyQt6",
     "github": ""

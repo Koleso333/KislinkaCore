@@ -321,7 +321,10 @@ class KislinkaApp:
 
     def _reload_current_app(self):
         """Reload current app (used after language change)."""
-        self._schedule_language_refresh()
+        if self._current_app and hasattr(self._current_app, "on_language_changed"):
+            self._schedule_language_refresh()
+        else:
+            self._schedule_visual_reload()
 
     def reload_visual(self):
         """Rebuild UI (scenes/settings/titlebar) while preserving app runtime state when possible."""

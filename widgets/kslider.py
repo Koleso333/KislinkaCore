@@ -72,6 +72,7 @@ class KSlider(QWidget):
         self.setFixedHeight(self.HEIGHT)
         self.setMinimumWidth(120)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setMouseTracking(True)
 
         # knob animation
@@ -278,11 +279,5 @@ class KSlider(QWidget):
 
     def wheelEvent(self, event):
         """Scroll wheel support."""
-        delta = event.angleDelta().y()
-        if delta == 0:
-            return
-        step = self._step if self._step > 0 else (self._max - self._min) / 50
-        if delta > 0:
-            self.value = self._value + step
-        else:
-            self.value = self._value - step
+        # Ignore wheel events to allow parent scrolling
+        event.ignore()

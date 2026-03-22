@@ -35,6 +35,7 @@ class KButton(QPushButton):
         self.setFixedHeight(height)
         self.setMinimumWidth(80)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setEnabled(enabled)
 
         if on_click:

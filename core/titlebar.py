@@ -17,6 +17,7 @@ class _TitleBarButton(QPushButton):
         self._icon_size = icon_size
         self.setFixedSize(36, 36)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setIconSize(QSize(icon_size, icon_size))
         self._apply_theme()
         ThemeManager.instance().changed.connect(self._apply_theme)

@@ -33,6 +33,7 @@ class KToggle(QWidget):
 
         self.setFixedSize(self.WIDTH, self.HEIGHT)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self._anim = QPropertyAnimation(self, b"knobX")
         self._anim.setDuration(150)

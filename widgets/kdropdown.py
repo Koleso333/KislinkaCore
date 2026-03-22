@@ -23,6 +23,7 @@ class KDropdown(QComboBox):
 
         self.setFont(Fonts.body(font_size))
         self.setEditable(editable)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         if placeholder:
             self.setPlaceholderText(placeholder)
@@ -114,6 +115,10 @@ class KDropdown(QComboBox):
     def hidePopup(self) -> None:
         self._animate_arrow(0.0)
         super().hidePopup()
+
+    def wheelEvent(self, event) -> None:
+        # Ignore wheel events to prevent accidental scroll changes
+        event.ignore()
 
     def paintEvent(self, event) -> None:
         # Let Qt draw the control itself

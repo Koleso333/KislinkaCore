@@ -27,6 +27,7 @@ class KCheckbox(QCheckBox):
         self.setChecked(checked)
 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setStyleSheet("background: transparent;")
         self.setMinimumHeight(max(self._box + 6, 24))
 
