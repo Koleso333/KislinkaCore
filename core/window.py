@@ -32,6 +32,7 @@ class KislinkaWindow(QWidget):
             Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window
         )
         self.setFixedSize(w, h)
+        self.setAcceptDrops(True)
 
         self._should_quit = True  # can be set to False before close
 
@@ -124,3 +125,16 @@ class KislinkaWindow(QWidget):
         event.accept()
         if self._should_quit:
             QApplication.quit()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        urls = event.mimeData().urls()
+        if urls:
+            file_paths = [url.toLocalFile() for url in urls if url.isLocalFile()]
+            if file_paths:
+                hooks = HookManager.instance()
+                hooks.emit("on_file_drop", file_paths=file_paths)
+                event.acceptProposedAction()

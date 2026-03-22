@@ -6,7 +6,7 @@
 Application framework built on Python + PyQt6.
 
 KislinkaCore is a runtime engine for desktop applications. You write the logic — the core handles the window, theming, navigation, audio, graphics, localization, and data storage.
-Documentation is created for version 0.1.1b2 (and commits)
+Documentation is created for version 0.1.1 (and commits)
 ---
 
 ## Table of Contents
@@ -37,6 +37,7 @@ Documentation is created for version 0.1.1b2 (and commits)
     - [KScrollArea](#kscrollarea)
     - [KSettingsItem](#ksettingsitem)
     - [KRow / KColumn / KGrid](#krow--kcolumn--kgrid)
+    - [KDialog](#kdialog)
   - [Theme](#theme)
   - [Audio](#audio)
   - [Metadata](#metadata)
@@ -774,6 +775,27 @@ grid.place(sidebar, row=1, col=0, rowspan=2)
 
 All containers use transparent background and fluent `.add()` chaining.
 
+#### KDialog
+
+```python
+from widgets.kdialog import KDialog
+
+dialog = KDialog(app.window.body, "Delete File", "Are you sure you want to delete this?")
+
+# Add buttons
+dialog.add_button("Cancel", dialog.reject)
+dialog.add_button("Delete", self.on_confirm)
+
+# Show with animation
+dialog.show_dialog()
+```
+
+Design:
+- Semi-transparent full-screen overlay (blocks clicks underneath)
+- Centered modal box with theme-aware background/border
+- Scale and fade-in / fade-out animations
+- Pressing Escape calls `reject()`
+
 ---
 
 ### Theme
@@ -1383,6 +1405,7 @@ def on_theme(self, **kwargs):
 | `on_audio_seek` | `position_ms` | Seek position changed |
 | `on_settings_open` | — | Settings panel opened |
 | `on_settings_close` | — | Settings panel closed |
+| `on_file_drop` | `file_paths` (list of str) | User dropped files into the window |
 | `on_error` | `error_type`, `error_msg`, `traceback` | Unhandled exception caught |
 
 **Available hooks (filter):**
