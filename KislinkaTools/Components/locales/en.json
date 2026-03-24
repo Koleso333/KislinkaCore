@@ -1,6 +1,7 @@
 {
   "menu_title": "KislinkaTools",
   "menu_build": "Build project",
+  "menu_create_demo": "Create demo app",
   "choose_option": "Choose option: ",
   "choose_app": "Choose an application:",
   "enter_number": "Enter number: ",
@@ -17,6 +18,8 @@
   "build_failed": "Build failed:",
   "no_apps_found": "No apps found in App/",
   "done": "Done.",
+  "demo_created": "Demo app created: App/KislinkaDemo",
+  "demo_exists": "App/KislinkaDemo already exists. Overwrite files?",
   "exit": "Exit",
   "build_error": "Build error:",
   "extra_deps_title": "Extra dependencies to pack (optional).",

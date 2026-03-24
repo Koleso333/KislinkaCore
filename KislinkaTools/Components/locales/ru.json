@@ -1,6 +1,7 @@
 {
   "menu_title": "KislinkaTools",
   "menu_build": "Билд проекта",
+  "menu_create_demo": "Создать тестовое приложение",
   "choose_option": "Выберите пункт: ",
   "choose_app": "Выберите приложение:",
   "enter_number": "Введите номер: ",
@@ -17,6 +18,8 @@
   "build_failed": "Сборка не удалась:",
   "no_apps_found": "В папке App/ не найдено приложений",
   "done": "Готово.",
+  "demo_created": "Тестовое приложение создано: App/KislinkaDemo",
+  "demo_exists": "App/KislinkaDemo уже существует. Перезаписать файлы?",
   "exit": "Выход",
   "build_error": "Ошибка сборки:",
   "extra_deps_title": "Доп. зависимости для упаковки (необязательно).",

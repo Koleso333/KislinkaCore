@@ -3,6 +3,7 @@ from __future__ import annotations
 from Components.appscan import list_apps
 from Components.build import build_full, build_slim
 from Components.cli_utils import input_choice, clear_screen
+from Components.demo_app import create_demo_app
 from Components.deps import ensure_dependencies
 from Components.i18n import I18n
 
@@ -74,11 +75,17 @@ def main() -> None:
     while True:
         print(i18n.t("menu_title"))
         print("  1.", i18n.t("menu_build"))
+        print("  2.", i18n.t("menu_create_demo"))
         print("  0.", i18n.t("exit"))
 
-        choice = input_choice(i18n.t("choose_option"), ["1", "0"])
+        choice = input_choice(i18n.t("choose_option"), ["1", "2", "0"])
         if choice == "0":
             return
+
+        if choice == "2":
+            create_demo_app(i18n)
+            print()
+            continue
 
         app = choose_app(i18n)
         extra = input_extra_hidden_imports(i18n)
