@@ -15,10 +15,10 @@ KSlider — themed horizontal slider with knob animation.
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import (
     Qt, QRectF, QPointF, pyqtSignal, pyqtProperty,
-    QPropertyAnimation, QEasingCurve,
 )
 from PyQt6.QtGui import QPainter, QColor, QPen
 
+from core.animation import KAnimator, KEasing
 from core.theme import ThemeManager
 
 
@@ -76,9 +76,7 @@ class KSlider(QWidget):
         self.setMouseTracking(True)
 
         # knob animation
-        self._knob_anim = QPropertyAnimation(self, b"knobRadius")
-        self._knob_anim.setDuration(120)
-        self._knob_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._knob_anim = None
 
         self._tm = ThemeManager.instance()
         self._tm.changed.connect(self.update)
@@ -173,10 +171,14 @@ class KSlider(QWidget):
         return self._min + ratio * (self._max - self._min)
 
     def _animate_knob(self, target: float):
-        self._knob_anim.stop()
-        self._knob_anim.setStartValue(self._knob_r)
-        self._knob_anim.setEndValue(target)
-        self._knob_anim.start()
+        if self._knob_anim is not None:
+            self._knob_anim.stop()
+        self._knob_anim = KAnimator.start(
+            self, b"knobRadius",
+            start=self._knob_r, end=target,
+            duration=120, easing=KEasing.OUT_CUBIC,
+            parent=self,
+        )
 
     # ── paint ───────────────────────────────────────
 

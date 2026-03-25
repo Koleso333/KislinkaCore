@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from PyQt6.QtWidgets import QComboBox, QStyleOptionComboBox, QStyle
-from PyQt6.QtCore import QRectF, Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
+from PyQt6.QtCore import QRectF, Qt, pyqtProperty, QTimer
 from PyQt6.QtGui import QPainter
 
+from core.animation import KAnimator, KEasing
 from core.theme import ThemeManager
 from core.fonts import Fonts
 from widgets.kicon import load_svg_icon
@@ -34,9 +35,10 @@ class KDropdown(QComboBox):
         self._tm = ThemeManager.instance()
 
         self._arrow_angle = 0.0
-        self._arrow_anim = QPropertyAnimation(self, b"arrowAngle")
-        self._arrow_anim.setDuration(140)
-        self._arrow_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._arrow_anim = None
+        self._popup_opacity = 0.0
+        self._popup_anim = None
+        self._popup_view = None  # cached reference to popup list view
 
         self._apply_theme()
         self._tm.changed.connect(self._apply_theme)
@@ -103,18 +105,69 @@ class KDropdown(QComboBox):
     arrowAngle = pyqtProperty(float, _get_arrow_angle, _set_arrow_angle)
 
     def _animate_arrow(self, target: float) -> None:
-        self._arrow_anim.stop()
-        self._arrow_anim.setStartValue(self._arrow_angle)
-        self._arrow_anim.setEndValue(target)
-        self._arrow_anim.start()
+        if self._arrow_anim is not None:
+            self._arrow_anim.stop()
+        self._arrow_anim = KAnimator.start(
+            self, b"arrowAngle",
+            start=self._arrow_angle, end=target,
+            duration=200, easing=KEasing.OUT_EXPO,
+            parent=self,
+        )
+
+    # ── popup fade ─────────────────────────────
+
+    def _get_popup_opacity(self) -> float:
+        return self._popup_opacity
+
+    def _set_popup_opacity(self, v: float) -> None:
+        self._popup_opacity = v
+        view = self.view()
+        if view and view.window():
+            view.window().setWindowOpacity(v)
+
+    popupOpacity = pyqtProperty(float, _get_popup_opacity, _set_popup_opacity)
 
     def showPopup(self) -> None:
         self._animate_arrow(180.0)
         super().showPopup()
 
+        # Animate popup fade-in
+        self._popup_opacity = 0.0
+        view = self.view()
+        if view and view.window():
+            view.window().setWindowOpacity(0.0)
+        if self._popup_anim is not None:
+            self._popup_anim.stop()
+        self._popup_anim = KAnimator.start(
+            self, b"popupOpacity",
+            start=0.0, end=1.0,
+            duration=160, easing=KEasing.OUT_CUBIC,
+            parent=self,
+        )
+
     def hidePopup(self) -> None:
         self._animate_arrow(0.0)
-        super().hidePopup()
+
+        # Animate popup fade-out, then actually hide
+        if self._popup_anim is not None:
+            self._popup_anim.stop()
+
+        if self._popup_opacity <= 0.01:
+            # Already hidden / instant close
+            super().hidePopup()
+            return
+
+        def _do_hide():
+            self._popup_opacity = 0.0
+            super(KDropdown, self).hidePopup()
+
+        self._popup_anim = KAnimator.start(
+            self, b"popupOpacity",
+            start=self._popup_opacity, end=0.0,
+            duration=120, easing=KEasing.IN_CUBIC,
+            on_done=_do_hide,
+            parent=self,
+        )
 
     def wheelEvent(self, event) -> None:
         # Ignore wheel events to prevent accidental scroll changes

@@ -4,11 +4,11 @@ KButton — rounded button with press scale animation.
 
 from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtCore import (
-    Qt, QPropertyAnimation, QEasingCurve,
-    pyqtProperty, QRectF,
+    Qt, pyqtProperty, QRectF,
 )
 from PyQt6.QtGui import QPainter, QColor
 
+from core.animation import KAnimator, KEasing
 from core.theme import ThemeManager
 from core.fonts import Fonts
 
@@ -41,9 +41,7 @@ class KButton(QPushButton):
         if on_click:
             self.clicked.connect(on_click)
 
-        self._scale_anim = QPropertyAnimation(self, b"buttonScale")
-        self._scale_anim.setDuration(100)
-        self._scale_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+        self._scale_anim = None
 
         self._tm = ThemeManager.instance()
         self._apply_theme()
@@ -97,10 +95,14 @@ class KButton(QPushButton):
         super().mouseReleaseEvent(event)
 
     def _animate_scale(self, target: float):
-        self._scale_anim.stop()
-        self._scale_anim.setStartValue(self._scale)
-        self._scale_anim.setEndValue(target)
-        self._scale_anim.start()
+        if self._scale_anim is not None:
+            self._scale_anim.stop()
+        self._scale_anim = KAnimator.start(
+            self, b"buttonScale",
+            start=self._scale, end=target,
+            duration=100, easing=KEasing.IN_CUBIC,
+            parent=self,
+        )
 
     def setEnabled(self, enabled: bool):
         super().setEnabled(enabled)

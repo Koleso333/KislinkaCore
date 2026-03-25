@@ -8,11 +8,12 @@ completes the real widget is shown so buttons become interactive.
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import (
-    Qt, QRectF, QPropertyAnimation, QEasingCurve,
+    Qt, QRectF,
     pyqtProperty, pyqtSignal,
 )
 from PyQt6.QtGui import QPainter, QColor, QPen, QPainterPath
 
+from core.animation import KAnimator, KEasing
 from core.theme import ThemeManager
 from widgets.klabel import KLabel
 from widgets.kbutton import KButton
@@ -158,13 +159,13 @@ class KDialog(QWidget):
         self._box_pixmap = self._box.grab()
         self._box.hide()  # hide real box during animation
 
-        self._anim = QPropertyAnimation(self, b"animVal")
-        self._anim.setDuration(self.ANIM_OPEN_MS)
-        self._anim.setStartValue(0.0)
-        self._anim.setEndValue(1.0)
-        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self._anim.finished.connect(self._on_open_done)
-        self._anim.start()
+        self._anim = KAnimator.start(
+            self, b"animVal",
+            start=0.0, end=1.0,
+            duration=self.ANIM_OPEN_MS, easing=KEasing.OUT_CUBIC,
+            on_done=self._on_open_done,
+            parent=self,
+        )
 
     def _on_open_done(self):
         self._box_pixmap = None
@@ -179,13 +180,13 @@ class KDialog(QWidget):
         self._box_pixmap = self._box.grab()
         self._box.hide()
 
-        self._anim = QPropertyAnimation(self, b"animVal")
-        self._anim.setDuration(self.ANIM_CLOSE_MS)
-        self._anim.setStartValue(1.0)
-        self._anim.setEndValue(0.0)
-        self._anim.setEasingCurve(QEasingCurve.Type.InCubic)
-        self._anim.finished.connect(self.close)
-        self._anim.start()
+        self._anim = KAnimator.start(
+            self, b"animVal",
+            start=1.0, end=0.0,
+            duration=self.ANIM_CLOSE_MS, easing=KEasing.IN_CUBIC,
+            on_done=self.close,
+            parent=self,
+        )
 
     # ── paint ───────────────────────────────────────
 

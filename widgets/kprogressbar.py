@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from PyQt6.QtWidgets import QProgressBar
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtProperty
 from PyQt6.QtGui import QPainter, QColor, QPen
 
+from core.animation import KAnimator, KEasing
 from core.theme import ThemeManager
 from core.fonts import Fonts
 
@@ -23,14 +24,48 @@ class KProgressBar(QProgressBar):
         super().__init__(parent)
 
         self.setRange(minimum, maximum)
-        self.setValue(value)
         self.setFixedHeight(height)
         self.setTextVisible(show_text)
         self.setFont(Fonts.body(font_size))
 
+        # animated ratio (0.0 → 1.0)
+        span = max(1, maximum - minimum)
+        self._display_ratio: float = max(0.0, min(1.0, (value - minimum) / span))
+        self._ratio_anim = None
+
         self._tm = ThemeManager.instance()
         self._apply_theme()
         self._tm.changed.connect(self._apply_theme)
+
+        # set value after everything is initialised
+        self.setValue(value)
+
+    # ── animated ratio property ─────────────────────
+
+    def _get_display_ratio(self) -> float:
+        return self._display_ratio
+
+    def _set_display_ratio(self, v: float) -> None:
+        self._display_ratio = v
+        self.update()
+
+    displayRatio = pyqtProperty(float, _get_display_ratio, _set_display_ratio)
+
+    def setValue(self, value: int) -> None:  # noqa: N802
+        super().setValue(value)
+        mn = self.minimum()
+        mx = self.maximum()
+        span = max(1, mx - mn)
+        target = max(0.0, min(1.0, (value - mn) / span))
+
+        if self._ratio_anim is not None:
+            self._ratio_anim.stop()
+        self._ratio_anim = KAnimator.start(
+            self, b"displayRatio",
+            start=self._display_ratio, end=target,
+            duration=260, easing=KEasing.OUT_CUBIC,
+            parent=self,
+        )
 
     def _apply_theme(self) -> None:
         # We paint manually to guarantee rounded chunk and correct text contrast.
@@ -65,12 +100,7 @@ class KProgressBar(QProgressBar):
         p.drawRoundedRect(rect, r, r)
 
         # fill (clipped to rounded rect to keep corners smooth)
-        mn = self.minimum()
-        mx = self.maximum()
-        val = self.value()
-        span = max(1, mx - mn)
-        ratio = (val - mn) / span
-        ratio = max(0.0, min(1.0, ratio))
+        ratio = self._display_ratio
         fill_w = int(rect.width() * ratio)
 
         if fill_w > 0:

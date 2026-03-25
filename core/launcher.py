@@ -2,7 +2,10 @@
 Launcher window for selecting which app to run.
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QApplication
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QLabel, QPushButton,
+    QApplication, QScrollArea,
+)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
@@ -37,6 +40,8 @@ class LauncherWindow(QWidget):
         border = "#2A2A2A"
         btn_bg = "#FFFFFF"
         btn_fg = "#000000"
+        scrollbar_bg = "#1A1A1A"
+        scrollbar_handle = "#444444"
 
         self.setStyleSheet(f"QWidget {{ background: {bg}; color: {fg}; }}")
 
@@ -63,6 +68,43 @@ class LauncherWindow(QWidget):
         inner_lay.addWidget(sub)
 
         inner_lay.addSpacing(10)
+
+        # ── scrollable app list ─────────────────────────────
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll.setStyleSheet(f"""
+            QScrollArea {{
+                background: transparent;
+                border: none;
+            }}
+            QScrollBar:vertical {{
+                background: {scrollbar_bg};
+                width: 6px;
+                margin: 0;
+                border-radius: 3px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {scrollbar_handle};
+                min-height: 30px;
+                border-radius: 3px;
+            }}
+            QScrollBar::add-line:vertical,
+            QScrollBar::sub-line:vertical {{
+                height: 0;
+            }}
+        """)
+
+        list_widget = QWidget()
+        list_widget.setStyleSheet("background: transparent; border: none;")
+        list_lay = QVBoxLayout(list_widget)
+        list_lay.setContentsMargins(0, 0, 4, 0)
+        list_lay.setSpacing(10)
 
         for m in self._manifests:
             btn = QPushButton(f"{m.display_name}  v{m.version}")
@@ -91,9 +133,11 @@ class LauncherWindow(QWidget):
                 return handler
 
             btn.clicked.connect(make_handler(m))
-            inner_lay.addWidget(btn)
+            list_lay.addWidget(btn)
 
-        inner_lay.addStretch()
+        list_lay.addStretch()
+        scroll.setWidget(list_widget)
+        inner_lay.addWidget(scroll, 1)
 
         footer = QLabel(f"{len(self._manifests)} application(s) found")
         footer.setFont(QFont("Roboto", 10, QFont.Weight.Bold))

@@ -4,11 +4,12 @@ KToggle — iOS-style toggle switch.
 
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtCore import (
-    Qt, QRectF, QPropertyAnimation, QEasingCurve,
+    Qt, QRectF,
     pyqtSignal, pyqtProperty,
 )
 from PyQt6.QtGui import QPainter, QColor
 
+from core.animation import KAnimator, KEasing
 from core.theme import ThemeManager
 
 
@@ -35,9 +36,7 @@ class KToggle(QWidget):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        self._anim = QPropertyAnimation(self, b"knobX")
-        self._anim.setDuration(150)
-        self._anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self._anim = None
 
         self._tm = ThemeManager.instance()
         self._tm.changed.connect(self.update)
@@ -74,12 +73,15 @@ class KToggle(QWidget):
     knobX = pyqtProperty(float, _get_knob_x, _set_knob_x)
 
     def _animate(self):
-        self._anim.stop()
-        self._anim.setStartValue(self._knob_x)
-        self._anim.setEndValue(
-            self._knob_on_x() if self._checked else self._knob_off_x()
+        if self._anim is not None:
+            self._anim.stop()
+        self._anim = KAnimator.start(
+            self, b"knobX",
+            start=self._knob_x,
+            end=self._knob_on_x() if self._checked else self._knob_off_x(),
+            duration=150, easing=KEasing.IN_OUT_CUBIC,
+            parent=self,
         )
-        self._anim.start()
 
     # ── click ───────────────────────────────────────
 

@@ -3,11 +3,9 @@ Scene system with slide transitions.
 """
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
-from PyQt6.QtCore import (
-    Qt, QPropertyAnimation, QEasingCurve,
-    QPoint, pyqtSignal,
-)
+from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 
+from core.animation import KAnimator, KEasing
 from core.hooks import HookManager
 
 
@@ -48,7 +46,7 @@ class SceneManager(QWidget):
     """Manages scene stack with slide transitions."""
 
     scene_changed = pyqtSignal(str)
-    DURATION = 220
+    DURATION = 300
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -56,8 +54,8 @@ class SceneManager(QWidget):
         self._current: Scene | None = None
         self._animating = False
         self._pending_action: str = ""
-        self._anim_new: QPropertyAnimation | None = None
-        self._anim_old: QPropertyAnimation | None = None
+        self._anim_new = None
+        self._anim_old = None
 
     @property
     def current(self) -> Scene | None:
@@ -141,18 +139,20 @@ class SceneManager(QWidget):
         new.raise_()
 
         # animate new scene
-        self._anim_new = QPropertyAnimation(new, b"pos", self)
-        self._anim_new.setDuration(self.DURATION)
-        self._anim_new.setStartValue(QPoint(new_start, 0))
-        self._anim_new.setEndValue(QPoint(0, 0))
-        self._anim_new.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._anim_new = KAnimator.animate(
+            new, b"pos",
+            start=QPoint(new_start, 0), end=QPoint(0, 0),
+            duration=self.DURATION, easing=KEasing.OUT_EXPO,
+            parent=self,
+        )
 
         # animate old scene
-        self._anim_old = QPropertyAnimation(old, b"pos", self)
-        self._anim_old.setDuration(self.DURATION)
-        self._anim_old.setStartValue(QPoint(0, 0))
-        self._anim_old.setEndValue(QPoint(old_end, 0))
-        self._anim_old.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._anim_old = KAnimator.animate(
+            old, b"pos",
+            start=QPoint(0, 0), end=QPoint(old_end, 0),
+            duration=self.DURATION, easing=KEasing.OUT_EXPO,
+            parent=self,
+        )
 
         self._finish_count = 0
         self._old_scene = old

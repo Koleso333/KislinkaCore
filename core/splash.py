@@ -4,9 +4,10 @@ Covers the ENTIRE window including titlebar.
 """
 
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
+from PyQt6.QtCore import Qt, pyqtProperty
 from PyQt6.QtGui import QPainter, QFont, QColor
 
+from core.animation import KAnimator, KEasing
 from core.hooks import HookManager
 
 
@@ -89,17 +90,19 @@ class SplashOverlay(QWidget):
             return
         self._finished = True
 
-        self._scale_anim = QPropertyAnimation(self, b"splashScale")
-        self._scale_anim.setDuration(400)
-        self._scale_anim.setStartValue(1.0)
-        self._scale_anim.setEndValue(1.15)
-        self._scale_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._scale_anim = KAnimator.animate(
+            self, b"splashScale",
+            start=1.0, end=1.15,
+            duration=400, easing=KEasing.OUT_CUBIC,
+            parent=self,
+        )
 
-        self._opacity_anim = QPropertyAnimation(self, b"splashOpacity")
-        self._opacity_anim.setDuration(400)
-        self._opacity_anim.setStartValue(1.0)
-        self._opacity_anim.setEndValue(0.0)
-        self._opacity_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._opacity_anim = KAnimator.animate(
+            self, b"splashOpacity",
+            start=1.0, end=0.0,
+            duration=400, easing=KEasing.OUT_CUBIC,
+            parent=self,
+        )
 
         def on_done():
             self.hide()
