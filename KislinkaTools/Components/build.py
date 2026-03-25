@@ -20,6 +20,28 @@ from Components.i18n import I18n
 from Components.paths import assets_dir, components_dir, root_dir, apps_dir, cash_dir, buildcomplete_dir
 
 
+# Hidden imports that PyInstaller cannot auto-detect for the audio
+# backend (PyAV + sounddevice).  These ensure the bundled FFmpeg libs
+# and PortAudio binary are included in the final executable.
+_CORE_HIDDEN_IMPORTS: list[str] = [
+    "av",
+    "av.audio",
+    "av.audio.frame",
+    "av.audio.resampler",
+    "av.container",
+    "av.format",
+    "av.stream",
+    "av.codec",
+    "av.packet",
+    "sounddevice",
+    "_sounddevice_data",
+    "numpy",
+    "numpy.core",
+    "numpy.core._methods",
+    "numpy.core._dtype_ctypes",
+]
+
+
 def _png_to_ico(png_path: Path, ico_path: Path) -> bool:
     """Convert PNG to ICO with multiple sizes. Returns True on success."""
     try:
@@ -333,7 +355,7 @@ def build_full(i18n: I18n, app: AppInfo, *, extra_hidden_imports: list[str] | No
 
         icon = _resolve_app_icon_for_build(app)
 
-        hidden_imports: list[str] = []
+        hidden_imports: list[str] = list(_CORE_HIDDEN_IMPORTS)
         cdir = components_dir()
         if cdir.exists():
             for folder in sorted(cdir.iterdir()):
@@ -408,7 +430,7 @@ def build_slim(i18n: I18n, app: AppInfo, *, extra_hidden_imports: list[str] | No
 
         icon = _resolve_app_icon_for_build(app)
 
-        hidden_imports: list[str] = []
+        hidden_imports: list[str] = list(_CORE_HIDDEN_IMPORTS)
         for comp_name in sorted(used):
             folder = _get_component_folder_by_name(comp_name)
             if folder is None:

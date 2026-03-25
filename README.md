@@ -71,7 +71,7 @@ Documentation is created for version 0.1.1 (and commits)
 ### 1. Install dependencies
 
 ```bash
-pip install PyQt6 pygame mutagen
+pip install PyQt6 mutagen av sounddevice numpy
 ```
 
 ### 2. Add fonts
@@ -199,7 +199,7 @@ KislinkaCore/
 │   └── ksettingsitem.py       # Settings list item
 │
 ├── audio/                     # Audio system
-│   ├── player.py              # Playback (pygame.mixer)
+│   ├── player.py              # Playback (PyAV + sounddevice)
 │   └── metadata.py            # Tags + cover art (mutagen)
 │
 ├── graphics/                  # Drawing API
@@ -212,9 +212,7 @@ KislinkaCore/
 │   ├── fonts/
 │   │   ├── Mitr-Regular.ttf
 │   │   └── Roboto-Bold.ttf
-│   └── bin/
-│       ├── ffmpeg.exe         # Optional, for m4a support
-│       └── ffprobe.exe        # Optional
+│   └── bin/                   # Optional binaries
 │
 └── App/                       # Your applications
     └── MyApp/
@@ -845,7 +843,7 @@ player = app.audio
 
 # Play
 player.play("path/to/track.mp3")
-player.play("track.m4a")           # requires ffmpeg in assets/bin/
+player.play("track.m4a")           # M4A/AAC supported natively
 
 # Controls
 player.pause()
@@ -884,12 +882,17 @@ player.error.connect(lambda msg: show_error(msg))
 | Format | Support |
 |---|---|
 | MP3 | Native |
-| OGG | Native |
+| OGG/Vorbis | Native |
 | WAV | Native |
 | FLAC | Native |
-| M4A/AAC | Via ffmpeg conversion |
+| M4A/AAC | Native |
+| ALAC | Native |
+| Opus | Native |
+| WMA | Native |
+| WebM | Native |
 
-Place `ffmpeg.exe` and `ffprobe.exe` in `assets/bin/` for M4A support.
+All formats work out of the box — no external binaries needed.
+The `av` pip package bundles FFmpeg libraries internally.
 
 ---
 
@@ -1649,12 +1652,13 @@ my_sound = APP_DIR / "assets" / "click.wav"
 
 ```txt
 PyQt6>=6.6.0
-pygame>=2.5.0
 mutagen>=1.47.0
+av>=14.0.0
+sounddevice>=0.5.0
+numpy>=1.24.0
 ```
 
-Optional:
-- `ffmpeg.exe` + `ffprobe.exe` in `assets/bin/` for M4A/AAC audio support
+No external binaries needed — all audio codecs are bundled inside the `av` pip wheel.
 
 ---
 
